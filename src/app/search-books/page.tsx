@@ -10,7 +10,6 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import BookFilter from '@/components/dashboard/BookFilters';
-import Loader from '@/components/common/Loader';
 
 interface Book {
   id: string;
@@ -27,11 +26,13 @@ interface Book {
 
 const PaginatedBookList = () => {
   const [books, setBooks] = useState<Book[]>([]); // Stores books for pagination or search results
+  // const [displayedBooks, setDisplayedBooks] = useState<Book[]>([]);
   const [page, setPage] = useState<number>(1); // Current page for pagination
   const [limit] = useState(10); // Books per page for pagination
   const [totalBooks, setTotalBooks] = useState<number>(0); // Total books count
   const [searchQuery, setSearchQuery] = useState<string>(''); // Stores the search query
-  const [searchResults, setSearchResults] = useState<string[]>([]); // Stores search results
+  const [searchResults, setSearchResults] = useState<Book[]>([]); // Stores search results
+
   // filter states
   const [filters, setFilters] = useState({
     author: '',
@@ -61,59 +62,45 @@ const PaginatedBookList = () => {
     if (!searchQuery) {
       loadBooks();
     }
-  }, [page, limit, searchQuery]);
-
-  // Handle search
-  // const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const query = e.target.value;
-  //   setSearchQuery(query);
-
-  //   if (query.trim() === '') {
-  //     setSearchResults([]);
-  //     setPage(1); // Reset to the first page when search is cleared
-  //     return;
-  //   }
-
-  //   const results = await searchBooksByName(query);
-  //   console.log("results: ", results);
-  //   if (Object(results).length > 0) {
-  //     setSearchResults(Object(results).map((item: Book) => item.title));
-  //   }
-
-  // };
+  }, [page, limit]);
 
   useEffect(() => {
-    console.log('fetching books: ', debouncedBookSearchQuery);
     if (debouncedBookSearchQuery) {
       searchBooksByName(debouncedBookSearchQuery)
         .then((results) => {
-          console.log("results: ", results);
-          if(Object(results).length > 0){
-            setSearchResults(Object(results).map((item: Book) => item.title));
-          }
+          setSearchResults(results as Book[]);
         })
         .catch((error) => toast({
           description: `Error fetching books ${error}`,
           value: 'destructive',
         }));
     } else {
-      setSearchResults([]);
+      setSearchResults([]); // Clear search results when the search query is empty
     }
   }, [debouncedBookSearchQuery]);
+
+  // Handle filter search when "Search" button is clicked in `BookFilter`
+  const handleFilterSearch = async () => {
+    try {
+      const filteredBooks = await getFilteredBooks(filters); // Run the server action
+      setDisplayedBooks(filteredBooks as Book[]);
+    } catch (error) {
+      console.error("Error applying filters:", error);
+    }
+  };
 
   // Page navigation handlers
   const handleNextPage = () => setPage((prevPage) => Math.min(prevPage + 1, totalPages));
   const handlePrevPage = () => setPage((prevPage) => Math.max(prevPage - 1, 1));
 
   // Decide whether to display paginated books or search results
-  const displayedBooks = searchQuery && searchResults.length === 0 ? [] : books;
-  // console.log("displayedBooks: ",displayedBooks);
+  const displayedBooks = books;
 
   return (
     <div className="container w-full h-screen overflow-hidden flex gap-4 p-4 py-8">
       {/* filters */}
       <div className='w-2/12 h-full max-sm:hidden'>
-        <BookFilter open={openFilterDialog} />
+        <BookFilter open={openFilterDialog} filters={filters} setFilters={setFilters} onFilterSearch={handleFilterSearch} />
       </div>
 
       {/* books */}
@@ -142,20 +129,17 @@ const PaginatedBookList = () => {
             </div>
           </div>
           {
-            (
-              <div className='sm:hidden'>
-                <BookFilter open={openFilterDialog} />
-              </div>
-            )
-          }
-          {
             searchQuery !== "" && searchResults.length > 0 && (
               <div className="w-full absolute mt-10 bg sm:w-1/2 max-h-40 overflow-y-auto text-gray-600 border border-gray-300 rounded-lg p-2 bg-white shadow-md">
                 <p className="mb-2">Showing {searchResults.length} results for "{searchQuery}"</p>
                 <ul className="space-y-1">
-                  {searchResults.map((title, index) => (
-                    <li key={index} className="hover:bg-gray-200 cursor-pointer p-1 rounded">
-                      {title}
+                  {searchResults.map((book) => (
+                    <li
+                      key={book.id}
+                      className="hover:bg-gray-200 cursor-pointer p-1 rounded"
+                      onClick={() => router.push(`/book-details/${book.id}`)}
+                    >
+                      {book.title}
                     </li>
                   ))}
                 </ul>
@@ -168,8 +152,8 @@ const PaginatedBookList = () => {
         <div className='w-full h-[80%] mx-auto flex flex-col items-center overflow-y-auto max-sm:-mt-4 sm:mt-2 pb-4'>
           <div className="flex flex-wrap justify-center items-center gap-6">
             {displayedBooks.map((book) => (
-              <div 
-                key={book.id} 
+              <div
+                key={book.id}
                 className="w-[300px] h-[150px] bg-white shadow-md rounded-lg p-4 flex flex-col transition duration-75 ease-in-out hover:cursor-pointer hover:bg-[#d5d0d0] hover:scale-105"
                 onClick={() => router.push(`/book-details/${book.id}`)}
               >
@@ -178,12 +162,12 @@ const PaginatedBookList = () => {
               </div>
             ))}
             {
-              (displayedBooks.length === 0 || !displayedBooks) && (<Loader />)
+              (displayedBooks.length === 0) && (<p>No books found.</p>)
             }
           </div>
         </div>
 
-        {/* Pagination Controls (only show when not searching) */}
+        {/* pagignation buttons */}
         <div className="flex justify-center items-center space-x-4 max-sm:mt-2">
           <Button
             onClick={handlePrevPage}

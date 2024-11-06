@@ -35,8 +35,8 @@ interface User{
 }
 
 interface LibraryCard{
-    id: string;
-    cardNumber: string;
+    cardId: string;
+    studentId: string;
     studentName: string;
 }
 
@@ -219,8 +219,8 @@ const IssueBookComponent = () => {
             >
               <option value="">Select a Library Card</option>
               {libraryCards.map((card) => (
-                <option key={card.id} value={card.id}>
-                  {card.studentName} (Card ID: {card.cardNumber})
+                <option key={card.cardId} value={card.cardId}>
+                  {card.studentName} (Card ID: {card.cardId})
                 </option>
               ))}
             </select>

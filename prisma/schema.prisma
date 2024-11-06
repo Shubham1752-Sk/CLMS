@@ -131,7 +131,6 @@ model Book {
 
 model Fine {
   id     String  @id @default(auto()) @map("_id") @db.ObjectId
-  // transactionId String  @db.ObjectId
   amount Float
   paid   Boolean @default(false)
 
@@ -158,10 +157,10 @@ model LibraryCard {
   id         String @id @default(auto()) @map("_id") @db.ObjectId
   studentId  String @unique // Link to User/Student model
   issueLimit Int    @default(4) // Maximum of 4 books at a time
+  active     Boolean @default(true)
 
   // Track issued books using the BookCopyIssue model
   issuedBooks BookCopyIssue[]
-
   // Relation to the user/student
   user User @relation(fields: [studentId], references: [id], onDelete: Cascade)
 

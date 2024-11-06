@@ -1,30 +1,32 @@
+// BookFilter.tsx
+
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
-const BookFilter = ({open}:{
-    open: boolean
-}) => {
-  const [filters, setFilters] = useState({
-    author: '',
-    publisher: '',
-    minCopies: '',
-    genreId: '',
-    isEbookAvailable: '',
-  });
+interface BookFilterProps {
+  open: boolean;
+  filters: {
+    author: string;
+    publisher: string;
+    minCopies: string;
+    genreId: string;
+    isEbookAvailable: string;
+  };
+  setFilters: React.Dispatch<React.SetStateAction<{
+    author: string;
+    publisher: string;
+    minCopies: string;
+    genreId: string;
+    isEbookAvailable: string;
+  }>>;
+  onFilterSearch: () => void; // Triggered by the "Search" button
+}
 
-//   useEffect(() => {
-//     const fetchBooks = async () => {
-//       const filteredBooks = await getFilteredBooks(filters); // Fetch filtered books from server action
-//       setBooks(filteredBooks);
-//     };
-
-//     fetchBooks();
-//   }, [filters]);
-
-  // Handle filter changes
+const BookFilter: React.FC<BookFilterProps> = ({ open, filters, setFilters, onFilterSearch }) => {
   const handleChange = (field: string, value: string) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
@@ -41,7 +43,7 @@ const BookFilter = ({open}:{
       <h1 className="text-2xl font-bold mb-4 max-sm:hidden">Filter Books</h1>
 
       {/* Filter Controls */}
-      <div className="grid grid-cols-1 max-sm:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 max-sm:grid-cols-2 gap-4 mb-4">
         <Input
           type="text"
           placeholder="Filter by author"
@@ -75,7 +77,6 @@ const BookFilter = ({open}:{
             <SelectItem value="1">Fiction</SelectItem>
             <SelectItem value="2">Non-Fiction</SelectItem>
             <SelectItem value="3">Science</SelectItem>
-            {/* More genres as needed */}
           </SelectContent>
         </Select>
 
@@ -90,6 +91,11 @@ const BookFilter = ({open}:{
           </SelectContent>
         </Select>
       </div>
+
+      {/* Search Button for Filters */}
+      <Button onClick={onFilterSearch} className="w-full sm:w-auto">
+        Search
+      </Button>
     </div>
   );
 };

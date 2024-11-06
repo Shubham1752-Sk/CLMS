@@ -115,20 +115,48 @@ export async function fetchBookCopies(bookId: string) {
 export async function searchLibraryCards(query: string) {
   console.log(query);
   try {
-    const cards = await db.libraryCard.findMany({
+    // Step 1: Find users with names that contain the search query
+    const users = await db.user.findMany({
       where: {
-        studentId: {
-          contains: query
+        name: {
+          contains: query,
+          mode: 'insensitive', // case-insensitive search
         },
       },
-      include: { user: true },
+      select: {
+        id: true,       // Only get the user ID
+        name: true,     // Get the user name for display
+      },
     });
-    // console.log("cards: ",cards);
 
-    return cards.map((card) => ({
-      id: card.id,
-      cardNumber: card.id,          // Return the card's ObjectID
-      studentName: card.user.name,   // Return the associated user's name
+    // console.log(users)
+
+    // Extract the IDs of users that matched the search query
+    const userIds = users.map((user) => user.id);
+
+    // Step 2: Find library cards associated with these users
+    const libraryCards = await db.libraryCard.findMany({
+      where: {
+        studentId: {
+          in: userIds, // Filter by user IDs obtained in step 1
+        },
+      },
+      include: {
+        user: {
+          select: {
+            name: true, // Include user name in the result
+          },
+        },
+      },
+    });
+
+    // console.log(libraryCards)
+
+    // Step 3: Map the result to include relevant information
+    return libraryCards.map((card) => ({
+      cardId: card.id,             // Library card ID
+      studentId: card.studentId,   // Student ID associated with the library card
+      studentName: card.user?.name // Student name
     }));
   } catch (error: any) {
     console.error('Error searching library cards:', error);
@@ -138,6 +166,7 @@ export async function searchLibraryCards(query: string) {
     };
   }
 }
+
 
 // Server action to issue a book to a user
 export async function issueBookToUser({
