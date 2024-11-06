@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getBooksPaginated, searchBooksByName } from '@/actions/bookActions'; // Replace with actual path
+import { getBooksPaginated, searchBooksByName, getFilteredBooks } from '@/actions/bookActions'; // Replace with actual path
 import { FilterIcon } from 'lucide-react';
 import { Cross1Icon } from '@radix-ui/react-icons';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -44,7 +44,7 @@ const PaginatedBookList = () => {
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [openFilterDialog, setOpenFilterDialog] = useState<boolean>(false);
 
-  const totalPages = Math.ceil(totalBooks / limit); // Total pages based on pagination limit
+  const totalPages = filteredBooks?.length > 0 ? Math.ceil(filteredBooks.length / limit) : Math.ceil(totalBooks / limit); // Total pages based on pagination limit
   const debouncedBookSearchQuery = useDebounce(searchQuery, 1000);
 
   const { toast } = useToast();
@@ -82,8 +82,10 @@ const PaginatedBookList = () => {
   // Handle filter search when "Search" button is clicked in `BookFilter`
   const handleFilterSearch = async () => {
     try {
+      // console.log(filters)
       const filteredBooks = await getFilteredBooks(filters); // Run the server action
-      setDisplayedBooks(filteredBooks as Book[]);
+      setFilteredBooks(filteredBooks.books as Book[]);
+      console.log(filteredBooks.books)
     } catch (error) {
       console.error("Error applying filters:", error);
     }
@@ -94,13 +96,13 @@ const PaginatedBookList = () => {
   const handlePrevPage = () => setPage((prevPage) => Math.max(prevPage - 1, 1));
 
   // Decide whether to display paginated books or search results
-  const displayedBooks = books;
+  const displayedBooks = filteredBooks?.length > 0 ? filteredBooks : books;
 
   return (
     <div className="container w-full h-screen overflow-hidden flex gap-4 p-4 py-8">
       {/* filters */}
       <div className='w-2/12 h-full max-sm:hidden'>
-        <BookFilter open={openFilterDialog} filters={filters} setFilters={setFilters} onFilterSearch={handleFilterSearch} />
+        <BookFilter open={openFilterDialog} filters={filters} setFilters={setFilters} onFilterSearch={handleFilterSearch} setFilteredBooks={setFilteredBooks} />
       </div>
 
       {/* books */}
@@ -128,6 +130,13 @@ const PaginatedBookList = () => {
               </button>
             </div>
           </div>
+          {
+            (
+              <div className='sm:hidden'>
+                <BookFilter open={openFilterDialog} filters={filters} setFilters={setFilters} onFilterSearch={handleFilterSearch} setFilteredBooks={setFilteredBooks} />
+              </div>
+            )
+          }
           {
             searchQuery !== "" && searchResults.length > 0 && (
               <div className="w-full absolute mt-10 bg sm:w-1/2 max-h-40 overflow-y-auto text-gray-600 border border-gray-300 rounded-lg p-2 bg-white shadow-md">

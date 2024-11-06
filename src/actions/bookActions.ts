@@ -284,6 +284,7 @@ export async function getFilteredBooks(filters: {
   genreId?: string;
   isEbookAvailable?: string;
 }) {
+  // console.log(filters)
   const { author, publisher, minCopies, genreId, isEbookAvailable } = filters;
 
   try {
@@ -298,7 +299,19 @@ export async function getFilteredBooks(filters: {
       orderBy: { title: 'asc' },
     });
 
-    return books;
+    console.log(books)
+
+    if(books.length === 0){
+      return {
+        success: false, 
+        message: 'No books found.'
+      }
+    }
+
+    return {
+      success: true, 
+      books
+    };
   } catch (error) {
     console.error('Error fetching filtered books:', error);
     throw new Error('Failed to fetch filtered books');

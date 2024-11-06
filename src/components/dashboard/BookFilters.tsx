@@ -2,10 +2,11 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { fetchGenres } from '@/actions/genreActions';
 
 interface BookFilterProps {
   open: boolean;
@@ -24,15 +25,54 @@ interface BookFilterProps {
     isEbookAvailable: string;
   }>>;
   onFilterSearch: () => void; // Triggered by the "Search" button
+  setFilteredBooks: React.Dispatch<React.SetStateAction<{
+    id: string;
+    title: string;
+    author: string;
+    publisher: string | null;
+    copies: number;
+    genreId: string;
+    isEbookAvailable: boolean;
+    ebookUrl: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }[]>>;
 }
 
-const BookFilter: React.FC<BookFilterProps> = ({ open, filters, setFilters, onFilterSearch }) => {
+interface Genre {
+  id: string;
+  name: string;
+}
+
+const BookFilter: React.FC<BookFilterProps> = ({ open, filters, setFilters, onFilterSearch, setFilteredBooks }) => {
+
+  const [genres, setGenres] = React.useState<Genre[]>([]);
   const handleChange = (field: string, value: string) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
       [field]: value,
     }));
   };
+
+  const clearFilters = () => {
+    setFilters({
+      author: '',
+      publisher: '',
+      minCopies: '',
+      genreId: '',
+      isEbookAvailable: '',
+    });
+    setFilteredBooks([]);
+  };
+
+  useEffect(() => {
+    fetchGenres().then((genres) => {
+      // console.log(genres)
+      if (genres.length > 0) {
+        setGenres(genres)
+      }
+    });
+  }, [])
 
   return (
     <div
@@ -68,34 +108,39 @@ const BookFilter: React.FC<BookFilterProps> = ({ open, filters, setFilters, onFi
           className="border border-gray-300 p-2 rounded-md shadow-sm"
         />
 
-        <Select onValueChange={(value) => handleChange('genreId', value)} value={filters.genreId}>
-          <SelectTrigger className="border border-gray-300 p-2 rounded-md shadow-sm w-full">
-            <span>Select Genre</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">All Genres</SelectItem>
-            <SelectItem value="1">Fiction</SelectItem>
-            <SelectItem value="2">Non-Fiction</SelectItem>
-            <SelectItem value="3">Science</SelectItem>
-          </SelectContent>
-        </Select>
+        <select
+          value={filters.genreId}
+          onChange={(e) => handleChange('genreId', e.target.value)}
+          className="border border-gray-300 p-2 rounded-md shadow-sm w-full"
+        >
+          <option value="">All Genres</option>
+          { genres.length > 0 && genres.map((genre) => (
+            <option key={genre.id} value={genre.id}>
+              {genre.name}
+            </option>
+          ))}
+        </select>
 
-        <Select onValueChange={(value) => handleChange('isEbookAvailable', value)} value={filters.isEbookAvailable}>
-          <SelectTrigger className="border border-gray-300 p-2 rounded-md shadow-sm w-full">
-            <span>E-book Availability</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Both</SelectItem>
-            <SelectItem value="true">Available</SelectItem>
-            <SelectItem value="false">Not Available</SelectItem>
-          </SelectContent>
-        </Select>
+        <select
+          value={filters.isEbookAvailable}
+          onChange={(e) => handleChange('isEbookAvailable', e.target.value)}
+          className="border border-gray-300 p-2 rounded-md shadow-sm w-full"
+        >
+          <option value="">Both</option>
+          <option value="available">Available</option>
+          <option value="issued">Not Available</option>
+        </select>
       </div>
 
       {/* Search Button for Filters */}
-      <Button onClick={onFilterSearch} className="w-full sm:w-auto">
-        Search
-      </Button>
+      <div className='flex sm:flex-col gap-2'>
+        <Button onClick={onFilterSearch} className="w-full sm:w-auto">
+          Search
+        </Button>
+        <Button onClick={clearFilters} className="w-full sm:w-auto">
+          Clear Filters
+        </Button>
+      </div>
     </div>
   );
 };
