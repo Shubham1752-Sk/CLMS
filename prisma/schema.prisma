@@ -158,7 +158,7 @@ model LibraryCard {
   id         String @id @default(auto()) @map("_id") @db.ObjectId
   studentId  String @unique // Link to User/Student model
   issueLimit Int    @default(4) // Maximum of 4 books at a time
-
+    active     Boolean @default(true)
   // Track issued books using the BookCopyIssue model
   issuedBooks BookCopyIssue[]
 
