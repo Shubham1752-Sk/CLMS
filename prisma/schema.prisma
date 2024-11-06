@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ISSUER
+  MANAGEMENT
+  ADMIN
+}
+
+// Enum for different departments
+enum DepartmentType {
+  SCIENCE
+  ARTS
+  COMMERCE
+  ENGINEERING
+  MEDICAL
+}
+
+// Department Model
+model Department {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  // type      DepartmentType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  students  User[] // Relation: One department can have many students
+  batch     Batch[]
+}
+
+// Batch Model
+model Batch {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  name         String // eg: 2021-2025
+  // year      Int // Year of the batch (e.g., 2025)
+  departmentId String?     @db.ObjectId
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  students     User[] // Relation: One batch can have many students
+  Department   Department? @relation(fields: [departmentId], references: [id])
+  
+}
+
+// User Model (Updated with Department and Batch relation)
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  departmentId  String?   @db.ObjectId // Relation: Foreign key to Department
+  batchId       String?   @db.ObjectId // Relation: Foreign key to Batch
+  password      String?
+
+  accounts    Account[]
+  role        UserRole?    @default(ISSUER)
+  LibraryCard LibraryCard?
+  Department  Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  Batch       Batch?       @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Genre {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+
+  books Book[] // One genre can have many books
+}
+
+model Book {
+  id               String  @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  author           String
+  // isbn             String    @unique
+  publisher        String?
+  copies           Int     @default(1) // Number of physical copies available
+  genreId          String  @db.ObjectId
+  isEbookAvailable Boolean @default(false) // Indicates if an e-book is available
+  ebookUrl         String? // URL for the e-book (nullable)
+
+  genres   Genre?     @relation(fields: [genreId], references: [id], onDelete: Cascade) // One book can have many genres
+  BookCopy BookCopy[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Fine {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  // transactionId String  @db.ObjectId
+  amount Float
+  paid   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookCopy {
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+  bookId        String  @db.ObjectId
+  condition     String?
+  status        String  @default("available") // available, issued, damaged
+  libraryCardId String? @db.ObjectId
+
+  book       Book            @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  // LibraryCard   LibraryCard? @relation(fields: [libraryCardId], references: [id])
+  bookIssues BookCopyIssue[] // Track the issue details for this book copy
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LibraryCard {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  studentId  String @unique // Link to User/Student model
+  issueLimit Int    @default(4) // Maximum of 4 books at a time
+
+  // Track issued books using the BookCopyIssue model
+  issuedBooks BookCopyIssue[]
+
+  // Relation to the user/student
+  user User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookCopyIssue {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  bookCopyId    String    @db.ObjectId
+  libraryCardId String    @db.ObjectId
+  issueDate     DateTime  @default(now()) // The date when the book was issued
+  dueDate       DateTime // 14 days after the issue date
+  returnDate    DateTime? // Nullable, as the book might not yet be returned
+  status        String    @default("issued") // issued, returned, overdue, etc.
+
+  // Relation to the BookCopy and LibraryCard
+  bookCopy    BookCopy    @relation(fields: [bookCopyId], references: [id], onDelete: Cascade)
+  libraryCard LibraryCard @relation(fields: [libraryCardId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
