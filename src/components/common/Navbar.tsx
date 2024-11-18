@@ -1,13 +1,21 @@
 'use client'
 import Image from 'next/image'
 import React from 'react'
-import logo from "../../../public/images/logo.jpeg"
-import Navlink from './navlink'
 import { auth } from '@/auth'
-import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import useAppContext from '@/contexts'
+
+function AvatarButton() {
+    return (
+        <button 
+            className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white shadow-md transition-all hover:bg-white/20 hover:shadow-lg"
+            onClick={()=>window.location.href="/login"}
+        >
+            <UserIcon />
+            <span>Sign In</span>
+        </button>
+    )
+}
 
 function UserIcon(props: any) {
     return (
@@ -34,32 +42,37 @@ const Navbar = async () => {
         "Home": "/",
         "About": "/about",
         "Contact": "/contact",
-        "Books": "/books-search",
+        "Books": "/search-books",
     }
 
-    const session = await auth();
-    const AvatarImg = await fetch(`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user?.name}`)
+    const {user} = useAppContext();
+    // console.log(user)
+    // const AvatarImg = await fetch(`https://api.dicebear.com/9.x/initials/svg?seed=${session?.user?.name}`)
     return (
-        <div className='w-screen h-fit p-4 py-2 bg-gray-500 text-white text-lg flex items-center justify-between sm:justify-center sm:gap-4'>
+        <div className='w-screen h-fit px-4 py-2 bg-blue-600 text-white text-lg flex justify-between items-center'>
             <div>
                 <Image
-                    src={logo}
+                    src={`/images/header.png`}
                     alt="logo"
-                    width={40}
-                    height={40}
+                    width={200}
+                    height={150}
                 />
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-4 ">
                 {/* Map over navLinks and pass key-value pairs */}
                 {
                     Object.entries(navLinks).map(([linkName, url]) => (
-                        <Navlink key={linkName} link={linkName} url={url} />
+                        <p
+                            onClick={() => window.location.href = url}
+                            key={linkName}
+                            className="text-white hover:scale-110 hover:underline-offset-1 transition-all duration-75 hover:cursor-pointer"
+                        >{linkName}</p>
                     ))
                 }
             </div>
 
             <div>
-                {/* <AvatarButton /> */}
+                <AvatarButton />
                 {/* <DropdownMenu>
                     <DropdownMenuTrigger>
                         open
@@ -73,8 +86,6 @@ const Navbar = async () => {
                         <DropdownMenuItem>Subscription</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu> */}
-
-                
             </div>
         </div>
     )

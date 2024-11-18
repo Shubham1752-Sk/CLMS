@@ -1,10 +1,7 @@
-// BookFilter.tsx
-
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { fetchGenres } from '@/actions/genreActions';
 

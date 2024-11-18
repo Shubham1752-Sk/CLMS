@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/use-debounce';
 import { fetchBookCopies, searchBooksByName, searchLibraryCards, issueBookToUser } from '@/actions/bookActions'; // Server actions for searching and fetching
+import BarLoader from '@/components/common/BarLoader';
 
 interface Book{
     id: string;
@@ -25,13 +26,6 @@ interface BookCopy{
     condition: string;
     status: string;
     libraryCardId: string;
-}
-
-interface User{
-    id: string;
-    name: string;
-    email: string;
-    // department: 
 }
 
 interface LibraryCard{
@@ -55,7 +49,12 @@ const IssueBookComponent = () => {
 
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10)); // Set default date to today
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState({
+    book: false,
+    copies: false,
+    libraryCard: false
+  });
+
   const { toast } = useToast();
 
   const debouncedBookSearchQuery = useDebounce(bookQuery, 1000);
@@ -63,36 +62,56 @@ const IssueBookComponent = () => {
 
   // Fetch books based on the debounced search query
   useEffect(() => {
+    setIsLoading((prev) => ({ ...prev, book: true }));
+  
     if (debouncedBookSearchQuery) {
-        searchBooksByName(debouncedBookSearchQuery)
+      searchBooksByName(debouncedBookSearchQuery)
         .then((data) => setBookResults(data as Book[]))
-        .catch((error) => console.error('Error fetching books:', error));
+        .catch((error) => console.error('Error fetching books:', error))
+        .finally(() => {
+          setIsLoading((prev) => ({ ...prev, book: false })); // Set loading to false after fetching
+        });
     } else {
-        setBookResults([]); // Clear books if no query
+      setBookResults([]); // Clear books if no query
+      setIsLoading((prev) => ({ ...prev, book: false })); // Set loading to false immediately if there's no query
     }
   }, [debouncedBookSearchQuery]);
+  
 
 
   // Fetch book copies when a book is selected
   useEffect(() => {
+    setIsLoading((prev) => ({ ...prev, copies: true }));
     if (selectedBookId) {
       fetchBookCopies(selectedBookId)
         .then((copies) => setBookCopies(copies as BookCopy[]))
-        .catch((error) => console.error('Error fetching book copies:', error));
+        .catch((error) => console.error('Error fetching book copies:', error))
+        .finally(()=>{
+          setIsLoading((prev) => ({ ...prev, copies: false }));
+        });
+    }
+    else{
+      setBookCopies([]);
+      setIsLoading((prev) => ({ ...prev, copies: false }));
     }
   }, [selectedBookId]);
 
   // Fetch Library Cards on the debounced search query
   useEffect(() => {
+    setIsLoading((prev) => ({ ...prev, libraryCard: true }));
     if (debouncedLibraryCardQuery) {
-      console.log('fetching library cards');
+      // console.log('fetching library cards');
         searchLibraryCards(debouncedLibraryCardQuery)
           .then((data) => {setLibraryCards(data as LibraryCard[]); console.log(data)})
-          .catch((error) => console.error('Error fetching Library Cards:', error));
+          .catch((error) => console.error('Error fetching Library Cards:', error))
+          .finally(()=>{
+            setIsLoading((prev) => ({ ...prev, libraryCard: false }));
+          })
     } 
-    // else {
-    //     setBookResults([]); // Clear books if no query
-    // }
+    else {
+        // setBookResults([]); // Clear books if no query
+        setIsLoading((prev) => ({ ...prev, libraryCard: false }));
+    }
   }, [debouncedLibraryCardQuery]);
 
   // Handle form submission (issuing the book)
@@ -135,13 +154,15 @@ const IssueBookComponent = () => {
     }
   };
 
+  console.log("loading: ", isLoading) 
+
   return (
     <div className="container mx-auto p-4 sm:p-8">
       <h1 className="text-2xl font-bold mb-4">Issue Book</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Search Book by Name */}
-        <div>
+        <div className='flex flex-col gap-2'>
           <Label htmlFor="bookSearch">Search Book</Label>
           <Input
             id="bookSearch"
@@ -150,6 +171,14 @@ const IssueBookComponent = () => {
             placeholder="Search book by name"
             className="mt-1"
           />
+          {
+            isLoading.book && <BarLoader />
+          }
+          {
+            debouncedBookSearchQuery.trim() !== '' && bookResults.length === 0 && (
+              <p className='text-red-400 mt-2 ml-2 text-sm'>No books Found!!</p>
+            )
+          }
           {/* Book Search Results */}
           {bookResults.length > 0 && (
             <select
@@ -160,14 +189,18 @@ const IssueBookComponent = () => {
             >
               <option value="">Select a Book</option>
               {bookResults.map((book) => (
-                <option key={book.id} value={book.id} className='w-full flex bg-gray-700 justify-between'>
-                  <p className=''>{book.title}</p> 
-                  <p className='text-gray-500'>{book.author}</p>
+                <option key={book.id} value={book.id} className='w-full flex text-[#4a4a4c] py-2 justify-between'>
+                  <p >{book.title}</p>{' '}
+                  <p >{book.author}</p>
                 </option>
               ))}
             </select>
           )}
         </div>
+
+        {
+          isLoading.copies && <BarLoader />
+        }
 
         {/* Display Book Copies */}
         {bookCopies.length > 0 && (
@@ -184,8 +217,8 @@ const IssueBookComponent = () => {
                 <option
                   key={copy.id}
                   value={copy.id}
-                  disabled={copy.status !== 'available'}
-                  className={copy.status === 'available' ? 'text-green-600' : 'text-red-600'}
+                  disabled={copy.status === 'issued' || copy.condition !== 'new'}
+                  className={ copy.condition === 'new' ? copy.status === 'available' ? 'text-green-600 cursor-pointer' : 'bg-gray-400 bg-opacity-30 hover:cursor-not-allowed cursor-not-allowed' : 'bg-red-400 bg-opacity-30 hover:cursor-not-allowed cursor-not-allowed'}
                 >
                   Book Id {copy.id} - {copy.condition} ({copy.status})
                 </option>
@@ -195,7 +228,7 @@ const IssueBookComponent = () => {
         )}
 
         {/* Search Library Card */}
-        <div>
+        <div className='flex flex-col gap-2'>
           <Label htmlFor="libraryCardSearch">Search Library Card</Label>
           <Input
             id="libraryCardSearch"
@@ -204,10 +237,13 @@ const IssueBookComponent = () => {
             placeholder="Search library card by student name"
             className="mt-1"
           />
+          {
+            isLoading.libraryCard && <BarLoader />
+          }
           {/* Library Card Results */}
           {
             debouncedLibraryCardQuery !== '' && libraryCards.length === 0 && (
-              <p className='text-red-400'>No library card Found with the given card No. </p>
+              <p className='text-red-400 mt-2 ml-2 text-sm'>No library card Found with the given card Name </p>
             )  
           }
           {libraryCards.length > 0 && (
@@ -236,6 +272,7 @@ const IssueBookComponent = () => {
             value={issueDate}
             onChange={(e) => setIssueDate(e.target.value)}
             required
+            disabled={true}
           />
         </div>
 

@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react"
-import { auth } from "@/auth";
+// import { auth } from "@/auth";
 import Navbar from "@/components/common/Navbar";
 import {AppWrapper} from "@/contexts";
+import React from "react";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,12 +29,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  const session = await auth()
+  // const session = await auth();
+
   return (
-    <SessionProvider session={session}>
+
       <html lang="en">
         <body
-          className={`${geistSans.variable} ${geistMono.variable} overflow-hidden box-border antialiased`}
+          className={`${geistSans.variable} ${geistMono.variable}  overflow-x-hidden box-border antialiased`}
         >
           <AppWrapper>
             {/* <Navbar /> */}
@@ -41,6 +43,6 @@ export default async function RootLayout({
           </AppWrapper>
         </body>
       </html>
-    </SessionProvider>
+
   );
 }

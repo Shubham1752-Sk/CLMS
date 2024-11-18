@@ -13,13 +13,14 @@ interface Genre {
 }
 
 const AddGenreComponent = () => {
-    const [genreName, setGenreName] = useState('');
+    const [genreName, setGenreName] = useState<string>('');
     const [genres, setGenres] = useState<Genre[] >([]); // Store fetched genres
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const { toast } = useToast();
     const [editingGenreId, setEditingGenreId] = useState<string>('');
     const [editingGenreName, setEditingGenreName] = useState<string>(''); // Store the genre name being edited
+
+    const { toast } = useToast();
 
     // Fetch genres on component mount
     useEffect(() => {
@@ -49,7 +50,7 @@ const AddGenreComponent = () => {
             const response = await addGenre(genreName);
 
             if (response.success) {
-                toast({ description: 'Genre added successfully!', variant: 'default' });
+                toast({ description: 'Genre added successfully!', variant: 'success' });
                 setGenres([...genres, response.genre] as Genre[]); // Add new genre to the list
                 setGenreName(''); // Clear form
             } else {
@@ -57,6 +58,7 @@ const AddGenreComponent = () => {
             }
         } catch (err) {
             setError('An error occurred while adding the genre. Please try again.');
+            toast({ description: 'An error occurred while adding the genre. Please try again.', variant: 'destructive' });
         } finally {
             setIsSubmitting(false);
         }
@@ -79,7 +81,7 @@ const AddGenreComponent = () => {
         try {
             const response = await updateGenre(editingGenreId, editingGenreName);
             if (response.success) {
-                toast({ description: 'Genre updated successfully!', variant: 'default' });
+                toast({ description: 'Genre updated successfully!', variant: 'success' });
                 // Update the genre in the list
                 setGenres(genres.map((genre) => (genre.id === editingGenreId ? { ...genre, name: editingGenreName } : genre)));
                 setEditingGenreId('');
@@ -89,6 +91,7 @@ const AddGenreComponent = () => {
             }
         } catch (err) {
             setError('An error occurred while updating the genre. Please try again.');
+            toast({ description: 'An error occurred while updating the genre. Please try again.', variant: 'destructive' });
         }
     };
 
@@ -101,7 +104,7 @@ const AddGenreComponent = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <Label htmlFor="genreName">Genre Name</Label>
+                    <Label htmlFor="genreName" className='text-xl font-bold'>Genre Name</Label>
                     <Input
                         id="genreName"
                         value={genreName}
@@ -121,19 +124,20 @@ const AddGenreComponent = () => {
             <h2 className="text-xl font-bold mt-8">Existing Genres</h2>
             {
                 genres.length === 0 ? (
-                    <p className="text-center text-gray-500">No genres found.</p>
+                    <p className="text-center text-gray-500">No Existing genres found.</p>
                 ) : (
                     <table className="min-w-full bg-white mt-4 border border-gray-200 rounded-lg shadow-md">
                         <thead>
                             <tr>
-                                <th className="px-4 py-2 border-b">Genre Name</th>
-                                <th className="px-4 py-2 border-b">Actions</th>
+                                <th className="px-4 py-2 border-r border-b text-start">Genre Name</th>
+                                <th className="px-4 py-2 border-r border-b text-start">Actions</th>
                             </tr>
                         </thead>
+
                         <tbody>
                             {genres.map((genre) => (
                                 <tr key={genre.id} className="border-b">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-2 border-r">
                                         {editingGenreId === genre.id ? (
                                             <Input
                                                 value={editingGenreName}

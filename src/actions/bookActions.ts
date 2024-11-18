@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { calculateDueDate } from "../utils/helper";
-import { ObjectId } from "mongodb"; // Import ObjectId if using MongoDB
+import { calculateDueDate, calculateDifferenceInDays } from "../utils/helper";
+
 
 export async function addBook(data: {
   title: string;
@@ -130,8 +130,6 @@ export async function searchLibraryCards(query: string) {
       },
     });
 
-    // console.log(users)
-
     // Extract the IDs of users that matched the search query
     const userIds = users.map((user) => user.id);
 
@@ -167,7 +165,6 @@ export async function searchLibraryCards(query: string) {
     };
   }
 }
-
 
 // Server action to issue a book to a user
 export async function issueBookToUser({
@@ -231,7 +228,8 @@ export async function issueBookToUser({
       where: { id: bookCopyId },
       data: {
         status: "issued", // Change status to issued
-        libraryCardId: libraryCardId, // Link the book copy to the library card
+        
+        // libraryCardId: libraryCardId, // Link the book copy to the library card
       },
     });
 
@@ -328,7 +326,7 @@ export async function getBookById(bookId: string) {
     const book = await db.book.findUnique({
       where: { id: bookId },
       include: {
-        BookCopy: true, // Include copies to get details of each physical copy
+        bookCopy: true, // Include copies to get details of each physical copy
         genres: true, // Include genres if needed
       },
     });
@@ -339,7 +337,7 @@ export async function getBookById(bookId: string) {
         message: "Book not Found",
       };
     // Calculate availability based on `copies` relation (assuming it contains availability info)
-    const availableCopies = book.BookCopy.filter(
+    const availableCopies = book.bookCopy.filter(
       (copy) => copy.status === "available"
     ).length;
 
@@ -356,49 +354,164 @@ export async function getBookById(bookId: string) {
   }
 }
 
-export async function GetStudents(batchId: string, departmentId: string) {
-  console.log(batchId);
+export async function getPaginatedBookIssues(page: number, limit: number) {
+  const issues = await db.bookCopyIssue.findMany({
+    where: { status: 'issued' },
+    skip: (page - 1) * limit,
+    take: limit,
+    orderBy: { issueDate: 'desc' },
+    include: { bookCopy: true, libraryCard: true },
+  });
+
+  const totalCount = await db.bookCopyIssue.count();
+
+  return {
+    issues,
+    totalCount,
+  };
+}
+
+export async function returnBookById(issueId: string) {
   try {
-    const students = await db.user.findMany({
-      where: { batchId, departmentId },
+    const bookIssue = await db.bookCopyIssue.findUnique({
+      where: { id: issueId },
+    });
+    // console.log('bookIssue:', bookIssue);
+
+    if (!bookIssue) {
+      return { success: false, message: 'Issue not found.' };
+    }
+
+    const returnDate = new Date();
+
+    const overdueDays = calculateDifferenceInDays(bookIssue.dueDate);
+    console.log('overdueDays:', overdueDays);
+    // return
+
+    let fine = 0;
+    if (overdueDays > 0) {
+      fine = overdueDays * 1; // Fine of Rs. 1 per overdue day
+    }
+
+    await db.fine.create({
+      data: {
+        amount: fine,
+        libraryCardId: bookIssue.libraryCardId,
+      },
     });
 
-    if (students.length === 0) {
-      console.log("No students found for the given batchId.");
+    await db.bookCopyIssue.update({
+      where: { id: issueId },
+      data: {
+        returnDate,
+        status: fine === 0 ? 'returned' : 'overdue',
+        updatedAt: new Date(),
+      },
+    });
+
+    await db.bookCopy.update({
+      where: { id: bookIssue.bookCopyId },
+      data: { status: 'available' },
+    });
+
+    return {
+      success: true,
+      message: `Book returned successfully${fine > 0 ? ` with a fine of Rs. ${fine}` : ''}.`,
+    };
+  } catch (error) {
+    console.error('Error returning book:', error);
+    return { success: false, message: 'Failed to return book.' };
+  }
+}
+
+export async function getAllBookCopies(bookId: string) {
+  if (!bookId) {
+    return {
+      success: false,
+      message: 'Book ID is required.',
+    };
+  }
+
+  try {
+    const bookCopies = await db.bookCopy.findMany({
+      where: { bookId },
+    });
+
+    if (!bookCopies.length) {
+      return {
+        success: true,
+        message: 'No copies found for this book.',
+        data: [],
+      };
     }
 
     return {
       success: true,
-      students,
+      message: `${bookCopies.length} book copies found.`,
+      data: bookCopies,
     };
-  } catch (err) {
-    console.error("Error fetching student details with corresponding id", err);
+  } catch (error) {
+    console.error('Error fetching book copies:', error);
     return {
       success: false,
-      error: "Error fetching student details with corresponding id",
+      message: 'Failed to fetch book copies.',
     };
   }
 }
 
-export async function deactiveStudentLibraryCard(studentId: string) {
+export async function updateBook(bookId: string, updatedData: Partial<{ title: string; author: string; publisher: string }>) {
+  // console.log(updatedData)
+  if (!bookId || !updatedData) {
+    return {
+      success: false,
+      message: 'Book ID and update data are required.',
+    };
+  }
+
   try {
-    const libraryCard = await db.libraryCard.update({
-      where: { studentId },
-      data: { active: false },
+    const book = await db.book.update({
+      where: { id: bookId },
+      data: updatedData,
     });
 
     return {
       success: true,
-      ...libraryCard,
+      message: 'Book updated successfully.',
+      data: book,
     };
   } catch (error) {
-    console.error(
-      "Error fetching student details with corressponding id",
-      error
-    );
+    console.error('Error updating book:', error);
     return {
       success: false,
-      error: "Error fetching student details with corressponding id",
+      message: 'Failed to update book details.',
+    };
+  }
+}
+
+export async function updateBookCopy(bookCopyId: string, updatedData: Partial<{ condition: string; status: string }>) {
+  if (!bookCopyId || !updatedData) {
+    return {
+      success: false,
+      message: 'Book copy ID and update data are required.',
+    };
+  }
+
+  try {
+    const bookCopy = await db.bookCopy.update({
+      where: { id: bookCopyId },
+      data: updatedData,
+    });
+
+    return {
+      success: true,
+      message: 'Book copy updated successfully.',
+      data: bookCopy,
+    };
+  } catch (error) {
+    console.error('Error updating book copy:', error);
+    return {
+      success: false,
+      message: 'Failed to update book copy details.',
     };
   }
 }

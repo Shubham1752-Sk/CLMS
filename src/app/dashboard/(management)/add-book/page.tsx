@@ -15,17 +15,15 @@ interface Genre {
 }
 
 const AddBookComponent = () => {
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [isbn, setIsbn] = useState('');
-  const [publisher, setPublisher] = useState('');
-  // const [publishedAt, setPublishedAt] = useState('');
-  const [copies, setCopies] = useState(1);
-  const [genreId, setGenreId] = useState('');
+  const [title, setTitle] = useState<string>('');
+  const [author, setAuthor] = useState<string>('');
+  const [publisher, setPublisher] = useState<string>('');
+  const [copies, setCopies] = useState<number>(1);
+  const [genreId, setGenreId] = useState<string>('');
   const [genres, setGenres] = useState<Genre[]>([]);
-  const [isEbookAvailable, setIsEbookAvailable] = useState(false);
-  const [ebookUrl, setEbookUrl] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEbookAvailable, setIsEbookAvailable] = useState<boolean>(false);
+  const [ebookUrl, setEbookUrl] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -71,7 +69,7 @@ const AddBookComponent = () => {
       });
 
       if (response.success) {
-        toast({ description: 'Book added successfully!', variant: 'default' });
+        toast({ description: 'Book added successfully!', variant: 'success' });
         // Clear the form
         setTitle('');
         setAuthor('');
@@ -87,6 +85,7 @@ const AddBookComponent = () => {
       }
     } catch (err) {
       setError('An error occurred while adding the book. Please try again.');
+      toast({ description: 'An error occurred while adding the book. Please try again.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }

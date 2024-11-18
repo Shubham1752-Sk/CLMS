@@ -45,11 +45,11 @@ model Batch {
   name         String // eg: 2021-2025
   // year      Int // Year of the batch (e.g., 2025)
   departmentId String?     @db.ObjectId
+  active       Boolean     @default(true)
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   students     User[] // Relation: One batch can have many students
   Department   Department? @relation(fields: [departmentId], references: [id])
-  
 }
 
 // User Model (Updated with Department and Batch relation)
@@ -123,49 +123,50 @@ model Book {
   ebookUrl         String? // URL for the e-book (nullable)
 
   genres   Genre?     @relation(fields: [genreId], references: [id], onDelete: Cascade) // One book can have many genres
-  BookCopy BookCopy[]
+  bookCopy BookCopy[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Fine {
-  id     String  @id @default(auto()) @map("_id") @db.ObjectId
-  amount Float
-  paid   Boolean @default(false)
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  amount        Float
+  libraryCardId String @db.ObjectId
+
+  libraryCard LibraryCard @relation(fields: [libraryCardId], references: [id], onDelete: Cascade)
+
+  // paid   Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model BookCopy {
-  id            String  @id @default(auto()) @map("_id") @db.ObjectId
-  bookId        String  @db.ObjectId
-  condition     String?
-  status        String  @default("available") // available, issued, damaged
-  libraryCardId String? @db.ObjectId
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  bookId    String  @db.ObjectId
+  condition String? @default("new") // e.g., new, damaged
+  status    String  @default("available") // available, issued
 
-  book       Book            @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  // LibraryCard   LibraryCard? @relation(fields: [libraryCardId], references: [id])
-  bookIssues BookCopyIssue[] // Track the issue details for this book copy
+  book          Book            @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  bookCopyIssue BookCopyIssue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model LibraryCard {
-  id         String @id @default(auto()) @map("_id") @db.ObjectId
-  studentId  String @unique // Link to User/Student model
-  issueLimit Int    @default(4) // Maximum of 4 books at a time
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  studentId  String  @unique // Link to User/Student model
+  issueLimit Int     @default(4) // Maximum of 4 books at a time
   active     Boolean @default(true)
 
-  // Track issued books using the BookCopyIssue model
   issuedBooks BookCopyIssue[]
-  // Relation to the user/student
-  user User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  Fine      Fine[]
 }
 
 model BookCopyIssue {

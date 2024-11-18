@@ -17,3 +17,29 @@ export function calculateDueDate(): Date {
 
     return dueDate;
 }
+
+export function calculateDifferenceInDays(dueDate: Date): number {
+
+    const current = new Date().getTime();
+    const due = new Date(dueDate).getTime();
+
+    // Calculate the difference in milliseconds
+    const differenceInMillis = current - due;
+
+    // Calculate the difference in days (1 day = 24 * 60 * 60 * 1000 ms)
+    const differenceInDays = Math.ceil(differenceInMillis / (1000 * 60 * 60 * 24));
+    // console.log('differenceInDays:', differenceInDays);
+
+    // Return the difference in days, or 0 if the end date is earlier than the start date
+    return differenceInDays > 0 ? differenceInDays : 0;
+}
+
+export function subDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() - days);
+    return result;
+}
+
+export function isAfter(date: Date, comparisonDate: Date): boolean {
+    return date.getTime() > comparisonDate.getTime();
+}

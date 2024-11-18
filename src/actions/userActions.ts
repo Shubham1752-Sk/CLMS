@@ -3,24 +3,32 @@
 import { db } from "@/db";
 import { saltAndHashPassword } from "@/utils/helper";
 
-export const getUserByEmail = async (email: string) =>{
-    try{
-        // console.log("in the func")
-        const user = await db.user.findUnique({
-            where: {
-                email,
-            }
-        });
-        // console.log(user)
-        return user;
-    }catch( error: any){
-        console.error(error);
-        return null;
-    }
+interface UpdateUserProfileInput {
+  userId: string;
+  name?: string;
+  email?: string;
+  departmentId?: string;
+  batchId?: string;
+  image?: string;
 }
 
 
-// Server Action to generate or fetch a student's library card details
+export const getUserByEmail = async (email: string) => {
+  try {
+    // console.log("in the func")
+    const user = await db.user.findUnique({
+      where: {
+        email,
+      }
+    });
+    // console.log(user)
+    return user;
+  } catch (error: any) {
+    console.error(error);
+    return null;
+  }
+}
+
 export async function generateLibraryCard(studentId: string) {
   try {
     // console.log("in the gen func")
@@ -39,7 +47,7 @@ export async function generateLibraryCard(studentId: string) {
       libraryCard = await db.libraryCard.create({
         data: {
           studentId: studentId,
-        //   cardNumber: generateCardNumber(), // Generate a new card number
+          //   cardNumber: generateCardNumber(), // Generate a new card number
         },
         include: {
           issuedBooks: true,
@@ -92,37 +100,47 @@ export async function getLibraryCardDetails(cardNumber: string) {
   }
 }
 
-
-interface UpdateUserProfileInput {
-  userId: string;
-  name?: string;
-  email?: string;
-  departmentId?: string;
-  batchId?: string;
-  image?: string;
-}
-
 export async function updateUserProfile(input: UpdateUserProfileInput) {
   try {
     const { userId, ...data } = input;
 
-    console.log(data);
+    // Validate that userId is a non-empty string
+    if (!userId || userId.trim() === "") {
+      console.log("Invalid User ID");
+      return { success: false, message: "Invalid User ID" };
+    }
 
-    return
-    
+    // Retrieve the user to confirm existence
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      console.log("User not found");
+      return { success: false, message: "User not found" };
+    }
+
+    // Remove any undefined values from `data`
+    const filteredData = Object.fromEntries(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== "")
+    );
+
+    // console.log("Filtered data to update:", filteredData);
+
     // Update the user profile in the database
     const updatedUser = await db.user.update({
       where: { id: userId },
-      data,
+      data: filteredData,
     });
+
+    // console.log("Updated user:", updatedUser);
 
     return { success: true, user: updatedUser };
   } catch (error) {
-    console.error('Failed to update user profile:', error);
-    return { success: false, error: 'Failed to update profile.' };
+    console.error("Failed to update user profile:", error);
+    return { success: false, message: "Failed to update profile." };
   }
 }
-
 
 export async function addDepartment(departmentName: string) {
   if (!departmentName || departmentName.trim() === '') {
@@ -143,7 +161,6 @@ export async function addDepartment(departmentName: string) {
   }
 }
 
-// In your addBatch function
 export async function addBatch(departmentId: string, batchName: string) {
   if (!departmentId || !batchName.trim()) {
     throw new Error('Department ID and batch name are required');
@@ -163,7 +180,6 @@ export async function addBatch(departmentId: string, batchName: string) {
     throw new Error('Failed to add batch');
   }
 }
-
 
 export async function getAllDepartments() {
   try {
@@ -252,6 +268,151 @@ export async function addManagementUser(name: string, email: string, password: s
   }
 }
 
+export async function getStudents(batchId: string, departmentId: string) {
+  // console.log(batchId);
+  try {
+    const students = await db.user.findMany({
+      where: { batchId, departmentId },
+      include: {
+        LibraryCard: true
+      }
+    });
+
+    if (students.length === 0) {
+      return { success: false, message: "No students found for the given batchId." };
+      // console.log("No students found for the given batchId.");
+    }
+
+    // Transform the data to include only the specified fields
+    const transformedStudents = students.map(student => {
+      const { id, name, email } = student;
+      const libraryCard = student.LibraryCard
+        ? { id: student.LibraryCard.id, active: student.LibraryCard.active }
+        : null; // Handle cases where LibraryCard might be null or undefined
+
+      return { id, name, email, libraryCard };
+    });
+
+    return {
+      success: true,
+      students: transformedStudents,
+    };
+  } catch (err) {
+    console.error("Error fetching student details with corresponding id", err);
+    return {
+      success: false,
+      error: "Error fetching student details with corresponding id",
+    };
+  }
+}
+
+export async function deactiveStudentLibraryCard({
+  studentId,
+  departmentId,
+  batchId,
+}: {
+  studentId: string;
+  departmentId: string;
+  batchId: string;
+}) {
+  try {
+    if (departmentId && batchId && departmentId.trim() !== '' && batchId.trim() !== '') {
+      console.log(departmentId, batchId);
+
+      // Fetch all students in the specified batch and department with active LibraryCards
+      const students = await db.user.findMany({
+        where: { batchId, departmentId },
+        include: {
+          LibraryCard: {
+            select: {
+              id: true,
+              active: true,
+            },
+          },
+        },
+      });
+
+      // Extract libraryCard IDs where LibraryCard is defined and active
+      const filteredIds = students
+        .filter(student => student.LibraryCard && student.LibraryCard.active)
+        .map(student => student.LibraryCard!.id);
+
+      if (filteredIds.length === 0) {
+        return {
+          success: false,
+          message: "No active Library Cards found for the given batch and department",
+        };
+      }
+
+      // Update all filtered libraryCard IDs to inactive
+      const libraryCards = await db.libraryCard.updateMany({
+        where: { id: { in: filteredIds } },
+        data: { active: false },
+      });
+
+      return {
+        success: true,
+        message: `${libraryCards.count} student Library Cards deactivated successfully`,
+        libraryCards
+      };
+    } else {
+      // Deactivate a single libraryCard by student ID
+      const libraryCard = await db.libraryCard.update({
+        where: { studentId },
+        data: { active: false },
+      });
+
+      return {
+        success: true,
+        message: "Student's Library Card deactivated successfully",
+        ...libraryCard,
+      };
+    }
+  } catch (error) {
+    console.error("Error deactivating student Library Cards:", error);
+    return {
+      success: false,
+      error: "Error deactivating student Library Cards",
+    };
+  }
+}
+
+export async function getDefaulters(departmentId?: string) {
+  try {
+    const overdueIssues = await db.bookCopyIssue.findMany({
+      where: {
+        status: "issued",
+        dueDate: {
+          lt: new Date(),
+        },
+        libraryCard: {
+          user: departmentId ? { departmentId } : undefined,
+        },
+      },
+      include: {
+        bookCopy: { include: { book: true } },
+        libraryCard: { include: { user: true } },
+      },
+    });
+
+    // console.log('overdueIssues:', overdueIssues);
+    // return
+
+    // Format data to simplify frontend usage
+    const defaulters = overdueIssues.map((issue) => ({
+      id: issue.id,
+      bookTitle: issue.bookCopy.book.title,
+      userName: issue.libraryCard.user?.name,
+      dueDate: issue.dueDate,
+      departmentId: issue.libraryCard.user?.departmentId,
+    }));
+
+    return { success: true, data: defaulters };
+  } catch (error) {
+    console.error("Error fetching defaulters:", error);
+    return { success: false, error: "Failed to fetch defaulters." };
+  }
+}
 
 // Helper function to generate a unique card number
 function generateCardNumber(): string {

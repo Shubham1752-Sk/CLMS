@@ -6,8 +6,9 @@ import useAppContext from '@/contexts'
 
 const MyProfile = () => {
 
-  const { user } = useAppContext();
-  console.log("mian:", user)
+  const { token, user, setUser } = useAppContext();
+
+  console.log("profile: ",user);
 
   return (
     <div className='w-full h-full text-center px-2 py-2 flex flex-col justify-center'>

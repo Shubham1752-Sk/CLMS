@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   HomeIcon,
   PlusIcon,
@@ -13,6 +13,12 @@ import {
   Building,
   FlowerIcon,
   Settings,
+  UndoIcon,
+  PencilIcon,
+  CaptionsOff,
+  Ban,
+  CalendarOff,
+  UserXIcon
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -32,8 +38,9 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { userRoles } from "@/lib/userRoles";
 import { Button } from "../ui/button";
+import { clientLogout } from "@/actions/auth";
+import { usePathname, useRouter } from "next/navigation";
 import useAppContext from "@/contexts";
-import { logout } from "@/actions/auth";
 
 const sidebarLinks = [
   {
@@ -98,6 +105,44 @@ const sidebarLinks = [
       },
     ],
   },
+  {
+    label: "Return Book",
+    icon: UndoIcon,
+    to: "/dashboard/return-book",
+    role: userRoles.MANAGEMENT,
+  },
+  {
+    label: "Edit Books",
+    icon: PencilIcon,
+    to: "/dashboard/edit-book-data",
+    role: userRoles.MANAGEMENT,
+  },
+  {
+    label: "Deactivate Library Cards",
+    icon: Ban,
+    to: "#",
+    role: userRoles.ADMIN,
+    children: [
+      {
+        label: "Deactivate Library Cards",
+        icon: CaptionsOff,
+        to: "/dashboard/deactivate-library-cards",
+        role: userRoles.ADMIN,
+      },
+      {
+        label: "Deactivate Batches",
+        icon: CalendarOff,
+        to: "/dashboard/deactivate-batch",
+        role: userRoles.ADMIN,
+      },
+    ]
+  },
+  {
+    label: "View Deafulters",
+    icon: UserXIcon,
+    to: "/dashboard/view-defaulters",
+    role: [userRoles.MANAGEMENT, userRoles.ADMIN],
+  },
 ];
 
 const Item = ({
@@ -123,11 +168,10 @@ const Item = ({
         <TooltipTrigger asChild>
           <Link
             href={to}
-            className={`flex h-9 w-9 items-center justify-center rounded-lg hover:scale-110 duration-75 ${
-              selected === title
-                ? "bg-white text-blue-700 border-gray-500"
-                : "text-gray-300 border-gray-300"
-            } border-2 transition-colors`}
+            className={`flex h-9 w-9 items-center justify-center rounded-lg hover:scale-110 duration-75 ${selected === title
+              ? "bg-white text-blue-700 border-gray-500"
+              : "text-gray-300 border-gray-300"
+              } border-2 transition-colors`}
             prefetch={false}
             onClick={() => {
               setSelected(title);
@@ -184,9 +228,25 @@ const Item = ({
 const SideBar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false); // Toggle for sidebar collapse
   const [selected, setSelected] = useState<string>("Account"); // Track selected item
+  
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const handleLogout = async () => {
+    console.log("logout");
+    if (window !== undefined) {
+      await clientLogout();
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user");
+      router.replace("/login");
+    }
+  };
+
+  useEffect(() => {
+    setSelected(sidebarLinks.find(link => link.to === pathname)?.label as string)
+  }, [pathname])
 
   const { user } = useAppContext();
-  // console.log("sidebar user: ", user?.role)
 
   // Function to check if the user has the required role
   const hasPermission = (requiredRoles: string[] | string) => {
@@ -215,16 +275,14 @@ const SideBar = () => {
 
   return (
     <div
-      className={` ${
-        isCollapsed ? "w-20" : "w-64"
-      } p-2 pl-0 flex flex-col gap-4 transition-all duration-100 ease-linear bg-blue-400`}
+      className={` ${isCollapsed ? "w-20" : "w-64"
+        } p-2 pl-0 flex flex-col gap-4 transition-all duration-100 ease-linear bg-blue-400`}
     >
       {/* Sidebar Toggle */}
-      <div className="flex justify-between items-center cursor-pointer p-2">
+      <div className="flex justify-between items-center cursor-pointer p-2 text-primary-foreground">
         <p
-          className={`text-lg font-bold ml-2 ${
-            isCollapsed ? "hidden" : "inline"
-          }`}
+          className={`text-xl text-primary-foreground font-bold ml-2 ${isCollapsed ? "hidden" : "inline"
+            }`}
         >
           DASHBOARD
         </p>
@@ -232,14 +290,14 @@ const SideBar = () => {
           onClick={() => {
             setIsCollapsed(!isCollapsed);
           }}
-          className="cursor-pointer p-2"
+          className="cursor-pointer p-2 hover:bg-black hover:bg-opacity-10 hover:scale-110 transition-colors duration-75 rounded-full"
         >
           {isCollapsed ? <SidebarOpenIcon /> : <SidebarClose />}
         </div>
       </div>
 
       {/* Divider */}
-      <div className="w-full h-0.5 bg-slate-400" />
+      <div className="w-full h-0.5 bg-slate-300" />
 
       {/* Sidebar Links */}
       <div className="w-full h-full flex flex-col items-center justify-between pb-10">
@@ -299,7 +357,7 @@ const SideBar = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => logout()}>
+                  <DropdownMenuItem onClick={() => handleLogout()}>
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
