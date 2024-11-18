@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
 
     // Check if the route is public
     const isPublicRoute = openRoutes.some((route) => path.startsWith(route));
-    
+
     // Check if the route is closed
     const isCloedRoute = closedRoutes.some((route) => path.startsWith(route));
 
@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
         console.log("isPublicRoute:", isPublicRoute);
         console.log("isCloedRoute:", isCloedRoute);
 
-        if(isPublicRoute){
+        if (isPublicRoute) {
             return NextResponse.next();
         }
 
@@ -39,10 +39,18 @@ export async function middleware(request: NextRequest) {
 
         // Redirect to login if accessing a protected route while not authenticated
         if (isProtectedRoute && !authenticated) {
-            const loginUrl = new URL("/login", request.url);
-            console.log("Login URL:", loginUrl);
+            // Use the full base URL from the request
+            const baseUrl = new URL(request.url).origin;
+            const loginUrl = new URL("/login", baseUrl);
+
+            // Alternatively, if you want to ensure full URL construction
+            console.log("Base URL:", baseUrl);
+            console.log("Login URL Full:", loginUrl.toString());
+            console.log("Login URL Pathname:", loginUrl.pathname);
+            console.log("Login URL Origin:", loginUrl.origin);
+
             loginUrl.searchParams.set("from", path); // Optional: Add a redirect param
-            
+
             const response = NextResponse.redirect(loginUrl);
             response.cookies.set('auth_token', '', {
                 maxAge: -1,
@@ -56,6 +64,7 @@ export async function middleware(request: NextRequest) {
             response.headers.set('x-clear-local-storage', 'true');
 
             return response;
+
         }
 
         // Redirect to dashboard if accessing login while authenticated

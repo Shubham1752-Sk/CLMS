@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { SessionProvider } from "next-auth/react"
+import { Toaster } from "@/components/ui/toaster";
 // import { auth } from "@/auth";
 import Navbar from "@/components/common/Navbar";
 import {AppWrapper} from "@/contexts";
@@ -39,6 +39,7 @@ export default async function RootLayout({
         >
           <AppWrapper>
             {/* <Navbar /> */}
+            <Toaster />
             {children}
           </AppWrapper>
         </body>

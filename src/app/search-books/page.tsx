@@ -10,6 +10,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import BookFilter from '@/components/dashboard/BookFilters';
+import Image from 'next/image';
 
 interface Book {
   id: string;
@@ -84,8 +85,22 @@ const PaginatedBookList = () => {
     try {
       // console.log(filters)
       const filteredBooks = await getFilteredBooks(filters); // Run the server action
-      setFilteredBooks(filteredBooks.books as Book[]);
-      console.log(filteredBooks.books)
+      console.log(filteredBooks.books);
+      if(!filteredBooks.books){
+        console.log("No books found.");
+        toast({
+          description: "No books found.",
+          variant: "destructive",
+        });
+        setFilteredBooks([]);
+      }
+      else{
+        toast({
+          description: `${filteredBooks.books.length} books found.`,
+          variant: "success",
+        })
+        setFilteredBooks(filteredBooks.books as Book[]);
+      }
     } catch (error) {
       console.error("Error applying filters:", error);
     }
@@ -99,75 +114,91 @@ const PaginatedBookList = () => {
   const displayedBooks = filteredBooks?.length > 0 ? filteredBooks : books;
 
   return (
-    <div className="container w-full h-screen overflow-hidden flex gap-4 p-4 py-8">
-      {/* filters */}
-      <div className='w-2/12 h-full max-sm:hidden'>
-        <BookFilter open={openFilterDialog} filters={filters} setFilters={setFilters} onFilterSearch={handleFilterSearch} setFilteredBooks={setFilteredBooks} />
+    <div className="container w-full h-screen overflow-hidden flex max-sm:justify-center gap-4 ">
+      {/* Sidebar for filters */}
+      <div className="hidden sm:block w-3/12 bg-gray-100 shadow-lg rounded-lg p-4">
+        <BookFilter
+          open={openFilterDialog}
+          filters={filters}
+          setFilters={setFilters}
+          onFilterSearch={handleFilterSearch}
+          setFilteredBooks={setFilteredBooks}
+        />
       </div>
 
-      {/* books */}
-      <div className='w-full h-full'>
-        <h1 className="text-2xl font-bold text-center mb-4">Book List</h1>
+      <div className="w-5/6 h-full flex flex-col py-4">
+        {/* books */}
+        <div className='w-full h-fit '>
+          <h1 className="text-2xl font-bold text-center mb-4">Book List</h1>
 
-        {/* Search Bar */}
-        <div className="z-10 sticky w-full mx-auto flex flex-col items-center mb-6">
-          <div className='w-full mx-auto flex justify-center gap-4 max-sm:px-2'>
-            <Input
-              type="text"
-              placeholder="Search books by title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-1/2 border-2 border-gray-800 p-2 rounded-md shadow-sm"
-            />
-            <div className='max-sm:block hidden'>
-              <button
-                className='w-10 h-9 bg-blue-600 rounded-sm text-center items-center text-white '
-                onClick={() => { setOpenFilterDialog((prev) => !prev) }}
-              >
-                {
-                  openFilterDialog ? <Cross1Icon className='w-full' /> : <FilterIcon className='w-full' />
-                }
-              </button>
+          {/* Search Bar */}
+          <div className=" w-full mx-auto flex flex-col items-center mb-6">
+            <div className='w-full mx-auto flex justify-center gap-4 max-sm:px-2'>
+              <Input
+                type="text"
+                placeholder="Search books by title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-1/2 border-2 border-gray-800 p-2 rounded-md shadow-sm"
+              />
+              <div className='max-sm:block hidden'>
+                <button
+                  className='w-10 h-9 bg-blue-600 rounded-sm text-center items-center text-white '
+                  onClick={() => { setOpenFilterDialog((prev) => !prev) }}
+                >
+                  {
+                    openFilterDialog ? <Cross1Icon className='w-full' /> : <FilterIcon className='w-full' />
+                  }
+                </button>
+              </div>
             </div>
+            {
+              (
+                <div className='sm:hidden'>
+                  <BookFilter open={openFilterDialog} filters={filters} setFilters={setFilters} onFilterSearch={handleFilterSearch} setFilteredBooks={setFilteredBooks} />
+                </div>
+              )
+            }
+            {
+              searchQuery !== "" && searchResults.length > 0 && (
+                <div className="w-full absolute mt-10 bg sm:w-1/2 max-h-40 overflow-y-auto text-gray-600 border border-gray-300 rounded-lg p-2 bg-white shadow-md">
+                  <p className="mb-2">Showing {searchResults.length} results for "{searchQuery}"</p>
+                  <ul className="space-y-1">
+                    {searchResults.map((book) => (
+                      <li
+                        key={book.id}
+                        className="hover:bg-gray-200 cursor-pointer p-1 rounded"
+                        onClick={() => router.push(`/book-details/${book.id}`)}
+                      >
+                        {book.title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            }
           </div>
-          {
-            (
-              <div className='sm:hidden'>
-                <BookFilter open={openFilterDialog} filters={filters} setFilters={setFilters} onFilterSearch={handleFilterSearch} setFilteredBooks={setFilteredBooks} />
-              </div>
-            )
-          }
-          {
-            searchQuery !== "" && searchResults.length > 0 && (
-              <div className="w-full absolute mt-10 bg sm:w-1/2 max-h-40 overflow-y-auto text-gray-600 border border-gray-300 rounded-lg p-2 bg-white shadow-md">
-                <p className="mb-2">Showing {searchResults.length} results for "{searchQuery}"</p>
-                <ul className="space-y-1">
-                  {searchResults.map((book) => (
-                    <li
-                      key={book.id}
-                      className="hover:bg-gray-200 cursor-pointer p-1 rounded"
-                      onClick={() => router.push(`/book-details/${book.id}`)}
-                    >
-                      {book.title}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )
-          }
         </div>
 
         {/* book cards */}
-        <div className='w-full h-[80%] mx-auto flex flex-col items-center overflow-y-auto max-sm:-mt-4 sm:mt-2 pb-4'>
+        <div className='w-full h-full mx-auto flex flex-col items-center overflow-y-auto max-sm:-mt-4 sm:mt-2 pb-4'>
           <div className="flex flex-wrap justify-center items-center gap-6">
             {displayedBooks.map((book) => (
               <div
                 key={book.id}
-                className="w-[300px] h-[150px] bg-white shadow-md rounded-lg p-4 flex flex-col transition duration-75 ease-in-out hover:cursor-pointer hover:bg-[#d5d0d0] hover:scale-105"
+                className="w-[300px] h-fit bg-white shadow-md rounded-lg p-4 flex transition duration-75 ease-in-out hover:cursor-pointer hover:bg-[#d5d0d0] hover:scale-105"
                 onClick={() => router.push(`/book-details/${book.id}`)}
               >
-                <h2 className="text-lg font-semibold mb-2">{book.title}</h2>
-                <p className="text-gray-600 mb-1"><strong>Author:</strong> {book.author}</p>
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">{book.title}</h2>
+                  <p className="text-gray-600 mb-1"><strong>Author:</strong> {book.author}</p>
+                </div>
+                <Image
+                  src={`/images/search-book.png`}
+                  alt="logo"
+                  width={200}
+                  height={150}
+                />
               </div>
             ))}
             {
@@ -177,7 +208,7 @@ const PaginatedBookList = () => {
         </div>
 
         {/* pagignation buttons */}
-        <div className="flex justify-center items-center space-x-4 max-sm:mt-2">
+        <div className="flex justify-center items-center space-x-4 max-sm:mt-2 mt-6">
           <Button
             onClick={handlePrevPage}
             disabled={page === 1}
@@ -197,6 +228,7 @@ const PaginatedBookList = () => {
           </Button>
         </div>
       </div>
+
     </div>
   );
 };

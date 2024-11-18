@@ -1,7 +1,8 @@
 "use client";
 
+import Header from '@/components/common/Header';
 import { motion } from 'framer-motion'
-import { Book, Users, Award, Building, ArrowRight, GraduationCap, Clock } from 'lucide-react'
+import { Book, Users, ArrowRight, GraduationCap, Clock } from 'lucide-react'
 import Link from 'next/link'
 
 export default function About() {
@@ -56,33 +57,15 @@ export default function About() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <Link href="/">
-              <motion.h1
-                className="text-3xl font-bold text-gray-900 cursor-pointer"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                AGC Library
-              </motion.h1>
-            </Link>
-            <div className="hidden md:flex space-x-8">
-              <Link href="/" className="text-gray-600 hover:text-gray-900">Home</Link>
-              <Link href="/about" className="text-blue-600 font-semibold">About</Link>
-              <Link href="#" className="text-gray-600 hover:text-gray-900">Services</Link>
-              <Link href="#" className="text-gray-600 hover:text-gray-900">Contact</Link>
-            </div>
-          </div>
-        </nav>
-      </header>
+      <Header />
 
       {/* Hero Section */}
       <motion.section
         className="relative bg-blue-700 text-white py-24"
-        initial="initial"
-        animate="animate"
+        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true, amount: 0.3 }}
         variants={fadeIn}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -97,8 +80,10 @@ export default function About() {
       {/* Stats Section */}
       <motion.section
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16"
-        initial="initial"
-        animate="animate"
+        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true, amount: 0.3 }}
         variants={fadeIn}
       >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -119,8 +104,10 @@ export default function About() {
       {/* Mission Section */}
       <motion.section
         className="bg-white py-16"
-        initial="initial"
-        animate="animate"
+        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true, amount: 0.3 }}
         variants={fadeIn}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 rounded-xl bg-blue-600 text-white">
@@ -139,8 +126,10 @@ export default function About() {
       {/* Facilities Section */}
       <motion.section
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16"
-        initial="initial"
-        animate="animate"
+        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true, amount: 0.3 }}
         variants={fadeIn}
       >
         <h3 className="text-3xl font-bold text-gray-900 mb-12 text-center">Our Facilities</h3>
@@ -162,8 +151,10 @@ export default function About() {
       {/* Library Rules & Timing Section */}
       <motion.section
         className="bg-gray-100 py-16"
-        initial="initial"
-        animate="animate"
+        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true, amount: 0.3 }}
         variants={fadeIn}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -218,8 +209,10 @@ export default function About() {
       {/* Contact Section */}
       <motion.section
         className="bg-white py-16"
-        initial="initial"
-        animate="animate"
+        whileInView={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 20 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true, amount: 0.3 }}
         variants={fadeIn}
       >
         <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 text-center">

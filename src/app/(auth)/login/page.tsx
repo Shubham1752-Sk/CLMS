@@ -18,17 +18,21 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { login } from "@/actions/auth";
+import { clientLogout } from "@/actions/auth";
+import { jwtDecode } from "jwt-decode";
 import Loader from "@/components/common/Loader";
 import ErrorMessage from "@/components/common/error-message";
 import LoadingButton from "@/components/common/loading-button";
+import useAppContext from "@/contexts";
 
 export default function SignIn() {
   const [globalError, setGlobalError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
+  
   const router = useRouter();
-
   const { toast } = useToast();
+  const { user, token } = useAppContext();
 
   const form = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
@@ -37,6 +41,35 @@ export default function SignIn() {
       password: "",
     },
   });
+
+  const CheckTokenValidity = () =>{
+    if (token) {
+      // console.log("token: ", token);
+      const res = jwtDecode(token);
+      if (res?.exp > Date.now() / 1000) {
+        return true;
+      }else {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+
+      if (user && token) {
+        const isValidToken = CheckTokenValidity();
+        console.log("isValidToken: ", isValidToken);
+        if (!isValidToken) {
+          clientLogout();
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("user");
+          router.replace("/login");
+        }
+      }
+    }
+  }, []);
 
   const onSubmit = async (values: z.infer<typeof signInSchema>) => {
     if (isNavigating) return;

@@ -77,10 +77,26 @@ export async function getLibraryCardDetails(cardNumber: string) {
         id: cardNumber,
       },
       include: {
-        user: true, // Assuming you have a relation between LibraryCard and User
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        }, // Assuming you have a relation between LibraryCard and User
         issuedBooks: {
           include: {
-            bookCopy: true, // Include book details for each issued book
+            bookCopy: {
+              include: {
+                book: {
+                  select: {
+                    title: true,
+                    author: true,
+                  },
+                },
+              },
+            }, // Include book details for each issued book
           },
         },
       },

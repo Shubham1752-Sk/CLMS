@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectGroup, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'; // Assuming you have a select component
 import { useToast } from '@/hooks/use-toast';
 import { addBook } from '@/actions/bookActions'; // Assuming these server actions exist
 import { fetchGenres } from '@/actions/genreActions'; // Assuming these server actions exist
@@ -121,17 +120,7 @@ const AddBookComponent = () => {
             required
           />
         </div>
-        {/* <div>
-          <Label htmlFor="isbn">ISBN</Label>
-          <Input
-            id="isbn"
-            value={isbn}
-            onChange={(e) => setIsbn(e.target.value)}
-            placeholder="Enter book ISBN"
-            className="mt-1"
-            required
-          />
-        </div> */}
+
         <div>
           <Label htmlFor="publisher">Publisher</Label>
           <Input
@@ -142,15 +131,7 @@ const AddBookComponent = () => {
             className="mt-1"
           />
         </div>
-        {/* <div>
-          <Label htmlFor="publishedAt">Published Date</Label>
-          <Input
-            id="publishedAt"
-            value={publishedAt}
-            onChange={(e) => setPublishedAt(e.target.value)}
-            type="date"
-          />
-        </div> */}
+
         <div>
           <Label htmlFor="copies">Number of Copies</Label>
           <Input
@@ -165,7 +146,7 @@ const AddBookComponent = () => {
 
         <div className='flex flex-col gap-2'>
           <Label htmlFor="genre">Genre</Label>
-          
+
           <select
             name="genre"
             id="genre"
